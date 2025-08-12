@@ -1,31 +1,38 @@
+'use client';
+
 import * as React from 'react';
-import { PageClientImpl } from './PageClientImpl';
+import dynamic from 'next/dynamic';
 import { isVideoCodec } from '@/lib/types';
 
-export default async function Page({
+const PageClientImpl = dynamic(() => import('./PageClientImpl').then(mod => ({ default: mod.PageClientImpl })), {
+  ssr: false,
+  loading: () => <div>Loading...</div>
+});
+
+export default function Page({
   params,
   searchParams,
 }: {
   params: Promise<{ roomName: string }>;
   searchParams: Promise<{
-    // FIXME: We should not allow values for regions if in playground mode.
     region?: string;
     hq?: string;
     codec?: string;
   }>;
 }) {
-  const _params = await params;
-  const _searchParams = await searchParams;
+  const resolvedParams = React.use(params);
+  const resolvedSearchParams = React.use(searchParams);
+  
   const codec =
-    typeof _searchParams.codec === 'string' && isVideoCodec(_searchParams.codec)
-      ? _searchParams.codec
+    typeof resolvedSearchParams.codec === 'string' && isVideoCodec(resolvedSearchParams.codec)
+      ? resolvedSearchParams.codec
       : 'vp9';
-  const hq = _searchParams.hq === 'true' ? true : false;
+  const hq = resolvedSearchParams.hq === 'true' ? true : false;
 
   return (
     <PageClientImpl
-      roomName={_params.roomName}
-      region={_searchParams.region}
+      roomName={resolvedParams.roomName}
+      region={resolvedSearchParams.region}
       hq={hq}
       codec={codec}
     />

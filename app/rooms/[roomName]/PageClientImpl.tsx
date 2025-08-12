@@ -30,6 +30,13 @@ import { useRouter } from 'next/navigation';
 import { useSetupE2EE } from '@/lib/useSetupE2EE';
 import { useLowCPUOptimizer } from '@/lib/usePerfomanceOptimiser';
 
+// Add global room tracking
+declare global {
+  interface Window {
+    livekitRoom?: any;
+  }
+}
+
 const CONN_DETAILS_ENDPOINT =
   process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT ?? '/api/connection-details';
 const SHOW_SETTINGS_MENU = process.env.NEXT_PUBLIC_SHOW_SETTINGS_MENU == 'true';
@@ -55,6 +62,12 @@ export function PageClientImpl(props: {
   );
 
   const handlePreJoinSubmit = React.useCallback(async (values: LocalUserChoices) => {
+    // Check if user is already in a room
+    if (window.livekitRoom) {
+      alert('You are already in a meeting. Please close other meeting tabs first.');
+      return;
+    }
+    
     setPreJoinChoices(values);
     const url = new URL(CONN_DETAILS_ENDPOINT, window.location.origin);
     url.searchParams.append('roomName', props.roomName);
@@ -174,6 +187,10 @@ function VideoConferenceComponent(props: {
           props.connectionDetails.participantToken,
           connectOptions,
         )
+        .then(() => {
+          // Track the room globally to prevent multiple connections
+          window.livekitRoom = room;
+        })
         .catch((error) => {
           handleError(error);
         });
@@ -198,7 +215,13 @@ function VideoConferenceComponent(props: {
   const lowPowerMode = useLowCPUOptimizer(room);
 
   const router = useRouter();
-  const handleOnLeave = React.useCallback(() => router.push('/'), [router]);
+  const handleOnLeave = React.useCallback(() => {
+    // Clean up global room tracking
+    if (window.livekitRoom === room) {
+      window.livekitRoom = undefined;
+    }
+    router.push('/');
+  }, [router, room]);
   const handleError = React.useCallback((error: Error) => {
     console.error(error);
     alert(`Encountered an unexpected error, check the console logs for details: ${error.message}`);

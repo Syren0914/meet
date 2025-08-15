@@ -12,11 +12,11 @@ import Viewer from '@/components/viewer';
 function Tabs(props: React.PropsWithChildren<{}>) {
   const searchParams = useSearchParams();
   const Viewer = dynamic(() => import("@/components/viewer"), { ssr: false });
-  const tabIndex = searchParams?.get('tab') === 'custom' ? 1 : 0;
+  const tabIndex = searchParams?.get('tab') === 'custom' ? 1 : searchParams?.get('tab') === 'join' ? 2 : 0;
 
   const router = useRouter();
   function onTabSelected(index: number) {
-    const tab = index === 1 ? 'custom' : 'demo';
+    const tab = index === 1 ? 'custom' : index === 2 ? 'join' : 'demo';
     router.push(`/?tab=${tab}`);
   }
 
@@ -258,6 +258,72 @@ function CustomConnectionTab(props: { label: string }) {
   );
 }
 
+function JoinRoomTab(props: { label: string }) {
+  const router = useRouter();
+  const [roomId, setRoomId] = useState('');
+  const [message, setMessage] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
+
+  const joinMeeting = async () => {
+    if (!roomId) {
+      setMessage('Please enter a room ID');
+      return;
+    }
+
+    setIsJoining(true);
+    setMessage('');
+
+    try {
+      if (roomId.includes('#')) {
+        const [roomIdPart, passphrasePart] = roomId.split('#');
+        router.push(`/rooms/${roomIdPart}#${passphrasePart}`);
+      } else {
+        router.push(`/rooms/${roomId}`);
+      }
+    } catch (error) {
+      setMessage('Error joining room. Please try again.');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  return (
+    <div className={styles.tabContent}>
+      <p style={{ margin: 0 }}>Join an existing Looplet Meet room.</p>
+
+      <div className="flex flex-col gap-4">
+        <Input 
+          type="text" 
+          placeholder="Enter Room ID (e.g., 1234567890abcdef)" 
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+        />
+      </div>
+      
+      {message && (
+        <div style={{ 
+          marginTop: '1rem', 
+          padding: '0.5rem', 
+          borderRadius: '4px',
+          backgroundColor: message.includes('Error') ? '#fee' : '#efe',
+          color: message.includes('Error') ? '#c00' : '#0a0'
+        }}>
+          {message}
+        </div>
+      )}
+
+      <button 
+        style={{ marginTop: '1rem' }} 
+        className="lk-button" 
+        onClick={joinMeeting}
+        disabled={isJoining}
+      >
+        {isJoining ? 'Joining...' : 'Join Room'}
+      </button>
+    </div>
+  );
+}
+
 export default function Page() {
   return (
     <>
@@ -283,6 +349,7 @@ export default function Page() {
           <Tabs>
             <DemoMeetingTab label="Demo" />
             <CustomConnectionTab label="Custom" />
+            <JoinRoomTab label="Join Room" />
           </Tabs>
         </Suspense>
       </main>

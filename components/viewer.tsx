@@ -11,7 +11,7 @@ function Model() {
 
   // Pick a random angular velocity (rad/sec) per axis once on mount
   const spin = useMemo(() => {
-    const rnd = () => (Math.random() * 0.6 + 0.2) * (Math.random() < 0.5 ? -1 : 1); // 0.2–0.8 rad/s
+    const rnd = () => (Math.random() * 2.5 + 1.0) * (Math.random() < 0.5 ? -1 : 1); // 0.2–0.8 rad/s
     return new THREE.Vector3(rnd(), rnd(), rnd());
   }, []);
 
